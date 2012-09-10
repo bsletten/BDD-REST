@@ -65,8 +65,9 @@ class CustomWorld {
             }
 
             success = true
-        } catch(Exception e) {
-            e.printStackTrace()
+        } catch(ex) {
+            assert ex.response.status == responseCode
+            success = true
         }
 
         success
@@ -83,4 +84,8 @@ When(~"I want to interact with a resource") { ->
 
 Then(~"I can (\\w+) a (\\w+) resource") { String method, String resource ->
     assert issueRequest(method, resource, 200)
+}
+
+Then(~"I am told I cannot (\\w+) a (\\w+) resource") { String method, String resource ->
+    assert issueRequest(method, resource, 405)
 }
