@@ -60,6 +60,7 @@ class CustomWorld {
 
             if(body != null) {
                 reqMap['body'] = body
+                //TODO: Why do custom MIME types throw NPEs in HTTPBuilder?
                 reqMap['requestContentType'] = 'application/xml'
             }
 
