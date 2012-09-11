@@ -31,6 +31,10 @@ class CustomWorld {
     }
 
     def issueRequest(String method, String resource, int responseCode) {
+        issueRequest(method, null, resource, responseCode)
+    }
+
+    def issueRequest(String method, def body, String resource, int responseCode) {
         def success = false
 
         def m = method.toLowerCase()
@@ -40,6 +44,10 @@ class CustomWorld {
         def mimetype = conf.rest.bdd.resource."$res".mimetype
         def handler = conf.rest.bdd.resource."$res".handler
         def validator = conf.rest.bdd.resource."$res".validator
+
+        println "$res: $validator"
+        println validator.getClass().getName()
+        println validator.getSize()
 
         if(handler != null) {
             assert mimetype != null
@@ -52,10 +60,17 @@ class CustomWorld {
         }
 
         try {
-            def resp = client."$m"('path' : path)
+            def reqMap = ['path' : path]
+
+            if(body != null) {
+                reqMap['body'] = body
+                reqMap['requestContentType'] = 'application/xml'
+            }
+
+            def resp = client."$m"(reqMap)
             assert resp.status == responseCode
 
-            if(mimetype != null) {
+            if(m.equals("get") && mimetype != null) {
                 assert resp.contentType == mimetype
             }
 
@@ -66,8 +81,16 @@ class CustomWorld {
 
             success = true
         } catch(ex) {
-            assert ex.response.status == responseCode
-            success = true
+            if(responseCode < 400) {
+                // This was not an exception we were
+                // expecting. Complain.
+                ex.printStackTrace()
+            } else {
+                // We were expecting a failure, so let's
+                // make sure it was the right kind.
+                assert ex.response.status == responseCode
+                success = true
+            }
         }
 
         success
@@ -84,6 +107,16 @@ When(~"I want to interact with a resource") { ->
 
 Then(~"I can (\\w+) a (\\w+) resource") { String method, String resource ->
     assert issueRequest(method, resource, 200)
+}
+
+Then(~"I can create a new (\\w+) resource") { String resource ->
+    def res = resource.toLowerCase()
+    def factory = conf.rest.bdd.resource."$res".factory
+    assert factory != null
+    factory = Class.forName(factory).newInstance()
+
+    def body = factory.createResource()
+    assert issueRequest("POST", body, resource, 201)
 }
 
 Then(~"I am told I cannot (\\w+) a (\\w+) resource") { String method, String resource ->

@@ -15,3 +15,7 @@ Feature: REST BDD 2
    Scenario: Overwrite the Account Resource
      When I want to interact with a resource
      Then I am told I cannot DELETE a ACCOUNT resource
+
+   Scenario: Create an Account
+     When I want to interact with a resource
+     Then I can create a new Account resource
