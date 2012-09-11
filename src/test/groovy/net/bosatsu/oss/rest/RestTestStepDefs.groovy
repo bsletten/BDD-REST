@@ -11,6 +11,10 @@ class CustomWorld {
     def client
     def conf
     def url
+    def badUser
+    def badPass
+    def goodUser
+    def goodPass
 
     CustomWorld() {
         def configFile = Thread.currentThread().getContextClassLoader().getResourceAsStream("config.properties")
@@ -24,10 +28,23 @@ class CustomWorld {
         if(port != null) {
             url += ":${port}"
         }
+
+        badUser = conf.rest.bdd.credentials.bad.username
+        badPass = conf.rest.bdd.credentials.bad.password
+        goodUser = conf.rest.bdd.credentials.good.username
+        goodPass = conf.rest.bdd.credentials.good.password
     }
 
     def initializeClient() {
         client = new RESTClient(url)
+    }
+
+    def addBadCredentials() {
+        client.auth.basic badUser, badPass
+    }
+
+    def addGoodCredentials() {
+        client.auth.basic goodUser, goodPass
     }
 
     def issueRequest(String method, String resource, int responseCode) {
@@ -39,11 +56,21 @@ class CustomWorld {
 
         def m = method.toLowerCase()
         def res = resource.toLowerCase()
+        def slash = false
+
+        if(res.endsWith("_slash")) {
+            slash = true
+            res = res.substring(0, res.length() - 6)
+        }
 
         def path = conf.rest.bdd.resource."$res".path
         def mimetype = conf.rest.bdd.resource."$res".mimetype
         def handler = conf.rest.bdd.resource."$res".handler
         def validator = conf.rest.bdd.resource."$res".validator
+
+        if(slash && !path.endsWith("/")) {
+            path += "/"
+        }
 
         if(handler != null) {
             assert mimetype != null
@@ -72,6 +99,10 @@ class CustomWorld {
 
             if(m.equals("get") && mimetype != null) {
                 assert resp.contentType == mimetype
+            }
+
+            if(resp.status == 201) {
+                assert resp.headers['Location'] != null
             }
 
             // Validators can be specified to analyze the structure
@@ -121,6 +152,18 @@ Then(~"I can create a new (\\w+) resource") { String resource ->
     assert issueRequest("POST", body, resource, 201)
 }
 
+Then(~"I am I denied a (\\w+) resource") { String resource ->
+    assert issueRequest(method, resource, 401)
+}
+
 Then(~"I am told I cannot (\\w+) a (\\w+) resource") { String method, String resource ->
     assert issueRequest(method, resource, 405)
+}
+
+And(~"I use the wrong username and password") { ->
+    addBadCredentials()
+}
+
+And(~"I use the right username and password") { ->
+    addGoodCredentials()
 }
