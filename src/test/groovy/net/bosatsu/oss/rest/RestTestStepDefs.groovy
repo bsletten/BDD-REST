@@ -45,10 +45,6 @@ class CustomWorld {
         def handler = conf.rest.bdd.resource."$res".handler
         def validator = conf.rest.bdd.resource."$res".validator
 
-        println "$res: $validator"
-        println validator.getClass().getName()
-        println validator.getSize()
-
         if(handler != null) {
             assert mimetype != null
             client.parser."$mimetype" = { resp ->
@@ -67,14 +63,19 @@ class CustomWorld {
                 reqMap['requestContentType'] = 'application/xml'
             }
 
+            // Invoke the requested method (GET, POST, PUT, DELETE, HEAD, OPTIONS)
+            // against the specified resource.
             def resp = client."$m"(reqMap)
+
             assert resp.status == responseCode
 
             if(m.equals("get") && mimetype != null) {
                 assert resp.contentType == mimetype
             }
 
-            if(validator != null) {
+            // Validators can be specified to analyze the structure
+            // of what is returned beyond a specific MIME type.
+            if(validator.size() > 0) {
               def v = Class.forName("$validator").newInstance()
               assert v.validate(resp.data)
             }

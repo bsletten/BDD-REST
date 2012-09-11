@@ -1,5 +1,11 @@
 package net.bosatsu.oss.rest
 
+/**
+ * A utility class to validate the expected structure of the
+ * application/vnd.bosatsu.commerce+xml representation.
+ *
+ * @see net.bosatsu.oss.rest.RestTestStepDefs
+ */
 class CommerceValidator {
     def validate(def resp) {
         boolean success = false
